@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOMRAT Downloader — Power by SOMRAT</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬇️</text></svg>">
+<style>
+  :root {
+    --bg1:#0b1020; --bg2:#131a35;
+    --glass:rgba(255,255,255,.06); --glass2:rgba(255,255,255,.09);
+    --line:rgba(255,255,255,.12);
+    --txt:#eef1ff; --mut:#9aa3c7;
+    --ac1:#6366f1; --ac2:#22d3ee; --ok:#34d399; --err:#fb7185;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,-apple-system,sans-serif; }
+  html,body { min-height:100%; }
+  body {
+    background:radial-gradient(1100px 600px at 85% -10%, rgba(99,102,241,.25), transparent 60%),
+               radial-gradient(900px 500px at -10% 110%, rgba(34,211,238,.16), transparent 60%),
+               linear-gradient(160deg, var(--bg1), var(--bg2));
+    color:var(--txt); min-height:100vh; padding:34px 16px 60px;
+  }
+  .wrap { max-width:860px; margin:0 auto; }
+
+  /* ---------- header ---------- */
+  header { display:flex; align-items:center; justify-content:space-between; margin-bottom:30px; }
+  .logo { display:flex; align-items:center; gap:12px; }
+  .logo .mark {
+    width:46px; height:46px; border-radius:14px; display:grid; place-items:center;
+    font-size:22px; background:linear-gradient(135deg,var(--ac1),var(--ac2));
+    box-shadow:0 8px 24px rgba(99,102,241,.45);
+  }
+  .logo h1 { font-size:22px; letter-spacing:.3px; }
+  .logo h1 span { background:linear-gradient(90deg,var(--ac1),var(--ac2));
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .logo small { display:block; color:var(--mut); font-size:11px; margin-top:2px; }
+  .badge {
+    font-size:11px; color:var(--mut); border:1px solid var(--line);
+    padding:6px 12px; border-radius:999px; background:var(--glass);
+  }
+
+  /* ---------- search ---------- */
+  .search {
+    display:flex; gap:10px; background:var(--glass); border:1px solid var(--line);
+    border-radius:18px; padding:10px; backdrop-filter:blur(14px);
+    box-shadow:0 18px 50px rgba(0,0,0,.35);
+  }
+  .search input {
+    flex:1; background:transparent; border:none; outline:none; color:var(--txt);
+    font-size:16px; padding:12px 14px;
+  }
+  .search input::placeholder { color:var(--mut); }
+  .btn {
+    border:none; cursor:pointer; border-radius:12px; font-weight:700; font-size:15px;
+    padding:12px 24px; color:#fff; background:linear-gradient(90deg,var(--ac1),var(--ac2));
+    transition:.18s; box-shadow:0 6px 20px rgba(99,102,241,.4);
+  }
+  .btn:hover { transform:translateY(-1px); filter:brightness(1.12); }
+  .btn:disabled { opacity:.55; cursor:wait; transform:none; }
+  .hint { color:var(--mut); font-size:12.5px; margin:12px 6px 0; text-align:center; }
+
+  /* ---------- loading ---------- */
+  .loading { display:none; margin-top:26px; }
+  .spin {
+    width:44px; height:44px; margin:0 auto 14px; border-radius:50%;
+    border:3px solid var(--line); border-top-color:var(--ac2);
+    animation:rot .8s linear infinite;
+  }
+  @keyframes rot { to { transform:rotate(360deg); } }
+  .loading p { text-align:center; color:var(--mut); font-size:14px; }
+
+  /* ---------- error ---------- */
+  .errbox {
+    display:none; margin-top:26px; background:rgba(251,113,133,.1);
+    border:1px solid rgba(251,113,133,.35); color:var(--err);
+    padding:16px 18px; border-radius:14px; font-size:14px; line-height:1.6;
+  }
+
+  /* ---------- result ---------- */
+  .result { display:none; margin-top:26px; }
+  .card {
+    background:var(--glass); border:1px solid var(--line); border-radius:20px;
+    padding:22px; backdrop-filter:blur(14px); box-shadow:0 18px 50px rgba(0,0,0,.35);
+  }
+  .vinfo { display:flex; gap:16px; flex-wrap:wrap; }
+  .vinfo img { width:210px; border-radius:12px; border:1px solid var(--line); }
+  .meta { flex:1; min-width:240px; }
+  .meta h2 { font-size:18px; line-height:1.5; margin-bottom:8px; }
+  .meta .sub { color:var(--mut); font-size:13px; line-height:1.9; }
+
+  /* tabs */
+  .tabs { display:flex; gap:8px; margin:22px 0 16px; }
+  .tab {
+    flex:1; text-align:center; padding:11px; border-radius:12px; cursor:pointer;
+    border:1px solid var(--line); background:var(--glass); color:var(--mut); font-size:14px; font-weight:600;
+    transition:.18s;
+  }
+  .tab.active { color:#fff; background:linear-gradient(90deg,rgba(99,102,241,.35),rgba(34,211,238,.25)); border-color:rgba(99,102,241,.5); }
+
+  /* players */
+  .player video, .player audio { width:100%; border-radius:14px; outline:none; margin-bottom:6px; }
+  .player video { background:#000; max-height:420px; }
+  .note { color:var(--mut); font-size:12px; margin-bottom:14px; }
+
+  /* quality grid */
+  .qlist { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; }
+  .q {
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    border:1px solid var(--line); background:var(--glass2); border-radius:14px;
+    padding:13px 14px; transition:.18s;
+  }
+  .q:hover { border-color:rgba(99,102,241,.6); transform:translateY(-1px); }
+  .q .l { display:flex; flex-direction:column; gap:3px; }
+  .q .l b { font-size:15px; }
+  .q .l small { color:var(--mut); font-size:11.5px; }
+  .q .l .tag {
+    display:inline-block; font-size:10px; padding:2px 8px; border-radius:999px; width:fit-content;
+    background:rgba(52,211,153,.15); color:var(--ok); border:1px solid rgba(52,211,153,.3);
+  }
+  .q .l .tag.noaudio { background:rgba(250,204,21,.12); color:#facc15; border-color:rgba(250,204,21,.3); }
+  .dl {
+    border:none; cursor:pointer; border-radius:10px; font-size:13px; font-weight:700;
+    padding:9px 13px; color:#fff; background:linear-gradient(90deg,var(--ac1),var(--ac2));
+    transition:.15s; white-space:nowrap;
+  }
+  .dl:hover { filter:brightness(1.15); }
+  .dl[disabled] { opacity:.5; cursor:wait; }
+
+  /* status bar */
+  #status {
+    margin-top:16px; min-height:22px; font-size:13.5px; color:var(--mut);
+    padding:12px 16px; border-radius:12px; background:var(--glass); border:1px solid var(--line);
+    display:none;
+  }
+  #status.ok { color:var(--ok); display:block; }
+  #status.bad { color:var(--err); display:block; }
+  #status.busy { display:block; }
+
+  footer { text-align:center; margin-top:44px; color:var(--mut); font-size:12.5px; line-height:2; }
+  footer b { background:linear-gradient(90deg,var(--ac1),var(--ac2));
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">
+      <div class="mark">⬇️</div>
+      <div>
+        <h1><span>SOMRAT</span> Downloader</h1>
+        <small>Video &amp; Audio — যেকোনো প্ল্যাটফর্ম</small>
+      </div>
+    </div>
+    <div class="badge">⚡ yt-dlp engine</div>
+  </header>
+
+  <div class="search">
+    <input type="url" id="url" placeholder="ভিডিওর লিংক পেস্ট করো (YouTube, Facebook, Instagram, TikTok, X ...)" autofocus>
+    <button class="btn" id="goBtn" onclick="getInfo()">🔍 খুঁজো</button>
+  </div>
+  <div class="hint">হাজারো ওয়েবসাইট সাপোর্টেড — ভিডিও + অডিও দুটোই ডাউনলোড ও প্রিভিউ করা যায়</div>
+
+  <div class="loading" id="loading">
+    <div class="spin"></div>
+    <p>ভিডিওর তথ্য আনা হচ্ছে... একটু অপেক্ষা করো</p>
+  </div>
+
+  <div class="errbox" id="errbox"></div>
+
+  <div class="result" id="result">
+    <div class="card">
+      <div class="vinfo">
+        <img id="thumb" alt="" referrerpolicy="no-referrer">
+        <div class="meta">
+          <h2 id="title"></h2>
+          <div class="sub">
+            👤 <span id="uploader"></span><br>
+            ⏱ <span id="dur"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" id="tabV" onclick="showTab('v')">🎬 ভিডিও</div>
+        <div class="tab" id="tabA" onclick="showTab('a')">🎵 অডিও</div>
+      </div>
+
+      <div id="paneV">
+        <div class="player">
+          <video id="vplayer" controls preload="metadata"></video>
+          <div class="note" id="vnote"></div>
+        </div>
+        <div class="qlist" id="vlist"></div>
+      </div>
+
+      <div id="paneA" style="display:none">
+        <div class="player">
+          <audio id="aplayer" controls></audio>
+          <div class="note">🎧 প্লে বাটনে চাপ দিয়ে অডিওটা শুনে নাও</div>
+        </div>
+        <div class="qlist" id="alist"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="status"></div>
+
+  <footer>
+    Power by <b>SOMRAT</b><br>
+    শুধু নিজের ব্যবহার ও শেখার জন্য — কপিরাইট কনটেন্ট অনুমতি ছাড়া বিতরণ করো না
+  </footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let CURRENT_URL = '';
+let AUDIO_URL   = '';
+
+const proxy = u => '/stream?url=' + encodeURIComponent(u);
+const fmtDur = s => {
+  if (!s) return '—';
+  const h = Math.floor(s/3600), m = Math.floor(s%3600/60), sec = s%60;
+  return (h ? h + ' ঘ ' : '') + m + ' মি ' + sec + ' সে';
+};
+
+async function getInfo() {
+  const url = $('url').value.trim();
+  if (!url) return;
+  CURRENT_URL = url;
+
+  $('goBtn').disabled = true;
+  $('loading').style.display = 'block';
+  $('errbox').style.display = 'none';
+  $('result').style.display = 'none';
+  setStatus('', '');
+
+  try {
+    const r = await fetch('/info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    render(d);
+    setStatus('ok', '✅ রেডি! প্লেয়ারে দেখো বা নিচের লিস্ট থেকে কোয়ালিটি বেছে ডাউনলোড করো');
+  } catch (e) {
+    let msg = e.message;
+    if (e instanceof TypeError || /Failed to fetch/i.test(msg)) {
+      msg = '❌ সার্ভারে পৌঁছানো যাচ্ছে না — SOMRAT-Downloader ফোল্ডারের start.bat চালু আছে কি না দেখো, তারপর পেজটা রিফ্রেশ করো।';
+    }
+    $('errbox').textContent = msg;
+    $('errbox').style.display = 'block';
+  } finally {
+    $('goBtn').disabled = false;
+    $('loading').style.display = 'none';
+  }
+}
+
+function render(d) {
+  $('result').style.display = 'block';
+  $('thumb').src = d.thumbnail || '';
+  $('title').textContent = d.title || '';
+  $('uploader').textContent = d.uploader || '';
+  $('dur').textContent = fmtDur(d.duration);
+
+  // ---- video tab ----
+  if (d.play) {
+    $('vplayer').src = proxy(d.play.url);
+    $('vnote').textContent = d.play_has_audio
+      ? `▶️ প্রিভিউ: ${d.play.label} (ভিডিও+অডিও) — প্লে করে দেখো`
+      : `⚠️ প্রিভিউ: ${d.play.label} — এই প্রিভিউতে শব্দ নেই (সার্ভারে ডাউনলোড করলে শব্দসহ পূর্ণ ভিডিও পাবে)`;
+  } else { $('vplayer').removeAttribute('src'); $('vnote').textContent = ''; }
+
+  const vl = $('vlist'); vl.innerHTML = '';
+  (d.videos || []).slice().reverse().forEach(f => {
+    vl.appendChild(qItem({
+      label: f.label, ext: f.ext, size: f.size,
+      tag: f.progressive ? 'ভিডিও+অডিও' : 'শুধু ভিডিও',
+      tagClass: f.progressive ? '' : 'noaudio',
+      fmt: f.format_id
+    }));
+  });
+  if (!d.has_ffmpeg) {
+    const n = document.createElement('div');
+    n.className = 'note';
+    n.style.gridColumn = '1/-1';
+    n.textContent = '💡 আরও ভালো মানের জন্য (1080p+ অডিওসহ মার্জ) ffmpeg ইনস্টল করলে সব কোয়ালিটি পাবে';
+    vl.appendChild(n);
+  }
+
+  // ---- audio tab ----
+  const al = $('alist'); al.innerHTML = '';
+  if ((d.audios || []).length) {
+    AUDIO_URL = d.audios[d.audios.length - 1].url;
+    $('aplayer').src = proxy(AUDIO_URL);
+    d.audios.slice().reverse().forEach(a => {
+      al.appendChild(qItem({
+        label: (a.abr ? Math.round(a.abr) + ' kbps' : a.label), ext: a.ext, size: a.size,
+        tag: 'অডিও', tagClass: '', fmt: a.format_id
+      }));
+    });
+  } else {
+    $('aplayer').removeAttribute('src');
+    al.innerHTML = '<div class="note" style="grid-column:1/-1">এই ভিডিওর আলাদা অডিও ফরম্যাট পাওয়া যায়নি</div>';
+  }
+}
+
+function qItem({label, ext, size, tag, tagClass, fmt}) {
+  const div = document.createElement('div');
+  div.className = 'q';
+  div.innerHTML = `
+    <div class="l">
+      <b>${label}</b>
+      <small>${ext.toUpperCase()}${size ? ' · ' + size : ''}</small>
+      <span class="tag ${tagClass}">${tag}</span>
+    </div>
+    <button class="dl">⬇ নাও</button>`;
+  div.querySelector('.dl').onclick = () => serverDownload(fmt, div.querySelector('.dl'));
+  return div;
+}
+
+async function serverDownload(formatId, btn) {
+  btn.disabled = true; btn.textContent = '⏳';
+  setStatus('busy', '⏳ ডাউনলোড হচ্ছে... ভিডিওর সাইজ অনুযায়ী সময় লাগতে পারে');
+  try {
+    const r = await fetch('/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: CURRENT_URL, format_id: formatId })
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    setStatus('ok', `✅ সম্পন্ন! <a href="/file/${d.file}" style="color:var(--ac2)">💾 ${d.title || d.file} — সেভ করো</a> (ফাইলটা downloads ফোল্ডারেও আছে)`);
+  } catch (e) {
+    let msg = e.message;
+    if (e instanceof TypeError || /Failed to fetch/i.test(msg)) msg = 'সার্ভার বন্ধ — start.bat আবার চালাও';
+    setStatus('bad', '❌ ' + msg);
+  } finally {
+    btn.disabled = false; btn.textContent = '⬇ নাও';
+  }
+}
+
+function setStatus(cls, html) {
+  const s = $('status');
+  if (!cls && !html) { s.className = ''; s.style.display = 'none'; s.textContent = ''; return; }
+  s.className = cls; s.style.display = 'block'; s.innerHTML = html;
+}
+
+function showTab(t) {
+  const v = t === 'v';
+  $('tabV').classList.toggle('active', v);
+  $('tabA').classList.toggle('active', !v);
+  $('paneV').style.display = v ? '' : 'none';
+  $('paneA').style.display = v ? 'none' : '';
+}
+
+// Enter key = search
+$('url').addEventListener('keydown', e => { if (e.key === 'Enter') getInfo(); });
+</script>
+</body>
+</html>
